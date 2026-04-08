@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Three in a Line – Irregular Verbs</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f4f5;
+      color: #18181b;
+      overflow: hidden;
+    }
+
+    .page {
+      max-width: 1100px;
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 12px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e4e4e7;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 0;
+      box-sizing: border-box;
+    }
+
+    h1, h2, p {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: clamp(1.4rem, 2.2vw, 2rem);
+    }
+
+    h2 {
+      font-size: clamp(1.1rem, 1.6vw, 1.4rem);
+    }
+
+    p {
+      font-size: clamp(0.92rem, 1.2vw, 1rem);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(90px, 1fr));
+      gap: 8px;
+      width: min(100%, 64vh, 520px);
+      margin: 0 auto;
+    }
+
+    .square {
+      aspect-ratio: 1 / 1;
+      border: 2px solid #d4d4d8;
+      border-radius: 12px;
+      background: #ffffff;
+      font-size: clamp(1.8rem, 5vh, 2.5rem);
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .square:disabled {
+      cursor: default;
+    }
+
+    .winning {
+      background: #d1fae5;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid #d4d4d8;
+      background: #ffffff;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .primary {
+      background: #111827;
+      color: white;
+      border-color: #111827;
+    }
+
+    .correct {
+      background: #059669;
+      color: white;
+      border-color: #059669;
+    }
+
+    .incorrect {
+      background: #dc2626;
+      color: white;
+      border-color: #dc2626;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 520px;
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid #e4e4e7;
+    }
+
+    @media (max-width: 800px) {
+      body {
+        overflow: auto;
+      }
+
+      .page {
+        min-height: auto;
+        justify-content: flex-start;
+      }
+
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .board {
+        width: min(100%, 82vw);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card">
+      <h1>Three in a Line – Irregular Verbs</h1>
+      <p>Class v Le Poisson Steve</p>
+      <p id="status"></p>
+      <p id="feedback"></p>
+    </div>
+
+    <div class="layout">
+      <div class="card">
+        <div id="board" class="board"></div>
+        <div class="buttons">
+          <button id="newRoundBtn" class="primary">New round</button>
+          <button id="resetBtn">Reset</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Score</h2>
+        <p><strong>You:</strong> <span id="playerScore">0</span></p>
+        <p><strong>Le Poisson Steve:</strong> <span id="aiScore">0</span></p>
+        <p><strong>Draws:</strong> <span id="drawScore">0</span></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="taskModal" class="modal">
+    <div class="modal-card">
+      <h2 id="taskTitle"></h2>
+      <div class="buttons">
+        <button id="correctBtn" class="correct">Correct</button>
+        <button id="incorrectBtn" class="incorrect">Incorrect</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const VERB_SETS = [
+      { base: "go", participle: "gone" },
+      { base: "see", participle: "seen" },
+      { base: "write", participle: "written" },
+      { base: "eat", participle: "eaten" },
+      { base: "take", participle: "taken" },
+      { base: "give", participle: "given" },
+      { base: "speak", participle: "spoken" },
+      { base: "break", participle: "broken" },
+      { base: "begin", participle: "begun" },
+      { base: "drive", participle: "driven" },
+      { base: "choose", participle: "chosen" },
+      { base: "drink", participle: "drunk" },
+      { base: "forget", participle: "forgotten" },
+      { base: "know", participle: "known" },
+      { base: "ring", participle: "rung" },
+      { base: "swim", participle: "swum" },
+      { base: "wear", participle: "worn" },
+      { base: "fly", participle: "flown" },
+      { base: "grow", participle: "grown" },
+      { base: "fall", participle: "fallen" },
+      { base: "do", participle: "done" },
+      { base: "come", participle: "come" },
+      { base: "be", participle: "been" },
+      { base: "have", participle: "had" },
+      { base: "make", participle: "made" },
+      { base: "find", participle: "found" },
+      { base: "tell", participle: "told" },
+      { base: "buy", participle: "bought" },
+      { base: "think", participle: "thought" },
+      { base: "teach", participle: "taught" },
+      { base: "leave", participle: "left" },
+      { base: "feel", participle: "felt" },
+      { base: "keep", participle: "kept" },
+      { base: "sleep", participle: "slept" },
+      { base: "meet", participle: "met" },
+      { base: "lose", participle: "lost" },
+      { base: "pay", participle: "paid" },
+      { base: "say", participle: "said" },
+      { base: "run", participle: "run" },
+      { base: "sit", participle: "sat" },
+      { base: "stand", participle: "stood" },
+      { base: "understand", participle: "understood" },
+      { base: "bring", participle: "brought" },
+      { base: "build", participle: "built" },
+      { base: "catch", participle: "caught" },
+      { base: "send", participle: "sent" },
+      { base: "spend", participle: "spent" },
+      { base: "win", participle: "won" },
+      { base: "sell", participle: "sold" }
+    ];
+
+    const WIN_LINES = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+
+    let board = Array(9).fill(null);
+    let score = { player: 0, ai: 0, draws: 0 };
+    let playerTurn = true;
+    let selectedSquare = null;
+    let currentTask = null;
+
+    const boardEl = document.getElementById("board");
+    const statusEl = document.getElementById("status");
+    const feedbackEl = document.getElementById("feedback");
+    const playerScoreEl = document.getElementById("playerScore");
+    const aiScoreEl = document.getElementById("aiScore");
+    const drawScoreEl = document.getElementById("drawScore");
+    const modalEl = document.getElementById("taskModal");
+    const taskTitleEl = document.getElementById("taskTitle");
+    const correctBtn = document.getElementById("correctBtn");
+    const incorrectBtn = document.getElementById("incorrectBtn");
+    const newRoundBtn = document.getElementById("newRoundBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    function getWinner(currentBoard) {
+      for (const [a, b, c] of WIN_LINES) {
+        if (currentBoard[a] && currentBoard[a] === currentBoard[b] && currentBoard[a] === currentBoard[c]) {
+          return { winner: currentBoard[a], line: [a, b, c] };
+        }
+      }
+      return { winner: null, line: [] };
+    }
+
+    function getRandomVerb(excludedBase) {
+      const pool = excludedBase
+        ? VERB_SETS.filter((verb) => verb.base !== excludedBase)
+        : VERB_SETS;
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function buildTask(excludedBase) {
+      const verb = getRandomVerb(excludedBase);
+      return {
+        base: verb.base,
+        title: verb.base.toUpperCase()
+      };
+    }
+
+    function getAvailableMoves(currentBoard) {
+      return currentBoard
+        .map((cell, index) => (cell === null ? index : null))
+        .filter((value) => value !== null);
+    }
+
+    function findBestMove(currentBoard) {
+      const availableMoves = getAvailableMoves(currentBoard);
+
+      for (let i = 0; i < availableMoves.length; i += 1) {
+        const move = availableMoves[i];
+        const testBoard = currentBoard.slice();
+        testBoard[move] = "O";
+        if (getWinner(testBoard).winner === "O") return move;
+      }
+
+      for (let i = 0; i < availableMoves.length; i += 1) {
+        const move = availableMoves[i];
+        const testBoard = currentBoard.slice();
+        testBoard[move] = "X";
+        if (getWinner(testBoard).winner === "X") return move;
+      }
+
+      if (currentBoard[4] === null) return 4;
+
+      const corners = [0, 2, 6, 8].filter((index) => currentBoard[index] === null);
+      if (corners.length > 0) {
+        return corners[Math.floor(Math.random() * corners.length)];
+      }
+
+      return availableMoves[Math.floor(Math.random() * availableMoves.length)];
+    }
+
+    function getStatus() {
+      const winnerData = getWinner(board);
+      const isDraw = !winnerData.winner && board.every(Boolean);
+
+      if (winnerData.winner === "X") return "You win this round!";
+      if (winnerData.winner === "O") return "Le Poisson Steve wins this round.";
+      if (isDraw) return "It is a draw.";
+      if (!playerTurn) return "Le Poisson Steve is thinking...";
+      return "";
+    }
+
+    function openModal() {
+      modalEl.className = "modal show";
+    }
+
+    function closeModal() {
+      modalEl.className = "modal";
+    }
+
+    function updateScoresIfNeeded() {
+      const winnerData = getWinner(board);
+      const isDraw = !winnerData.winner && board.every(Boolean);
+
+      if (winnerData.winner === "X") {
+        score.player += 1;
+      } else if (winnerData.winner === "O") {
+        score.ai += 1;
+      } else if (isDraw) {
+        score.draws += 1;
+      }
+    }
+
+    function render() {
+      const winnerData = getWinner(board);
+      const isDraw = !winnerData.winner && board.every(Boolean);
+
+      statusEl.textContent = getStatus();
+      playerScoreEl.textContent = String(score.player);
+      aiScoreEl.textContent = String(score.ai);
+      drawScoreEl.textContent = String(score.draws);
+
+      boardEl.innerHTML = "";
+
+      for (let index = 0; index < board.length; index += 1) {
+        const value = board[index];
+        const btn = document.createElement("button");
+        btn.className = "square";
+
+        if (winnerData.line.indexOf(index) !== -1) {
+          btn.className += " winning";
+        }
+
+        btn.textContent = value === "O" ? "🐟" : (value || "");
+        btn.disabled = !playerTurn || Boolean(value) || Boolean(winnerData.winner) || isDraw;
+        btn.addEventListener("click", function () {
+          openTaskForSquare(index);
+        });
+        boardEl.appendChild(btn);
+      }
+    }
+
+    function openTaskForSquare(index) {
+      if (!playerTurn || board[index] || getWinner(board).winner || !currentTask) return;
+      selectedSquare = index;
+      taskTitleEl.textContent = currentTask.title;
+      feedbackEl.textContent = "Ask the student for this verb only: " + currentTask.title;
+      openModal();
+    }
+
+    function aiTurn() {
+      window.setTimeout(function () {
+        const winnerData = getWinner(board);
+        const isDraw = !winnerData.winner && board.every(Boolean);
+
+        if (winnerData.winner || isDraw) {
+          render();
+          return;
+        }
+
+        const move = findBestMove(board);
+        if (move !== undefined) {
+          board[move] = "O";
+        }
+
+        updateScoresIfNeeded();
+        playerTurn = true;
+        currentTask = buildTask(currentTask ? currentTask.base : null);
+        feedbackEl.textContent = "Your turn again. Click a square.";
+        render();
+      }, 500);
+    }
+
+    function handleCorrect() {
+      if (selectedSquare === null) return;
+
+      board[selectedSquare] = "X";
+      selectedSquare = null;
+      closeModal();
+      updateScoresIfNeeded();
+      playerTurn = false;
+      feedbackEl.textContent = "Correct! Le Poisson Steve will play.";
+      render();
+
+      if (!getWinner(board).winner && !board.every(Boolean)) {
+        aiTurn();
+      }
+    }
+
+    function handleIncorrect() {
+      selectedSquare = null;
+      closeModal();
+      playerTurn = false;
+      feedbackEl.textContent = "Incorrect. Le Poisson Steve will play.";
+      render();
+      aiTurn();
+    }
+
+    function resetRound() {
+      board = Array(9).fill(null);
+      playerTurn = true;
+      selectedSquare = null;
+      currentTask = buildTask();
+      closeModal();
+      feedbackEl.textContent = "Click a square to get a verb.";
+      render();
+    }
+
+    function resetAll() {
+      board = Array(9).fill(null);
+      score = { player: 0, ai: 0, draws: 0 };
+      playerTurn = true;
+      selectedSquare = null;
+      currentTask = buildTask();
+      closeModal();
+      feedbackEl.textContent = "Click a square to get a verb.";
+      render();
+    }
+
+    function runSelfChecks() {
+      console.assert(getWinner(["X", "X", "X", null, null, null, null, null, null]).winner === "X", "Row win check failed");
+      console.assert(getWinner(["O", null, null, "O", null, null, "O", null, null]).winner === "O", "Column win check failed");
+      console.assert(getWinner(["X", null, null, null, "X", null, null, null, "X"]).winner === "X", "Diagonal win check failed");
+      console.assert(/^[A-Z]+(?: [A-Z]+)*$/.test(buildTask().title), "Task format check failed");
+      console.assert(typeof findBestMove(["O", "O", null, null, null, null, null, null, null]) === "number", "AI move check failed");
+    }
+
+    correctBtn.addEventListener("click", handleCorrect);
+    incorrectBtn.addEventListener("click", handleIncorrect);
+    newRoundBtn.addEventListener("click", resetRound);
+    resetBtn.addEventListener("click", resetAll);
+
+    currentTask = buildTask();
+    feedbackEl.textContent = "Click a square to get a speaking task.";
+    runSelfChecks();
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poissonboozle</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f4f4f5;
+      color: #18181b;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    .wrapper {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .scorebox {
+      font-weight: bold;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+    .grid-wrap {
+      position: relative;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      max-width: 520px;
+      margin: 20px auto;
+    }
+    .square {
+      height: 100px;
+      font-size: 20px;
+      font-weight: bold;
+      border-radius: 10px;
+      border: 2px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+    }
+    .square:disabled {
+      cursor: default;
+    }
+    .last-picked {
+      outline: 4px solid #2563eb;
+      outline-offset: -4px;
+    }
+    .red { background: #fee2e2; }
+    .orange { background: #ffedd5; }
+    .yellow { background: #fef9c3; }
+    .green { background: #dcfce7; }
+    .blue { background: #dbeafe; }
+    .grey { background: #e5e7eb; }
+    .purple { background: #ede9fe; }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.92);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      z-index: 10;
+    }
+    .overlay.show {
+      display: flex;
+    }
+    .qbox {
+      background: #fff;
+      border: 2px solid #ddd;
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+    .qverb {
+      font-size: 38px;
+      font-weight: bold;
+      margin-bottom: 16px;
+    }
+    .result {
+      font-size: 24px;
+      font-weight: bold;
+      min-height: 32px;
+      margin-top: 10px;
+    }
+    .turn-prompt {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.25);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+    .turn-prompt.show {
+      display: flex;
+    }
+    .turn-prompt-box {
+      background: #fff;
+      padding: 24px 28px;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      max-width: 90vw;
+      font-size: 22px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="topbar">
+      <div>
+        <h2 style="margin:0 0 8px 0;">Poissonboozle</h2>
+        <button id="newBtn">New Game</button>
+      </div>
+      <div class="scorebox">
+        <div id="scores"></div>
+        <div id="wins"></div>
+      </div>
+    </div>
+
+    <div class="grid-wrap">
+      <div id="grid" class="grid"></div>
+      <div id="overlay" class="overlay">
+        <div class="qbox">
+          <div id="verb" class="qverb"></div>
+          <button id="correctBtn">Correct</button>
+          <button id="incorrectBtn">Incorrect</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <div id="turnPrompt" class="turn-prompt">
+    <div class="turn-prompt-box">
+      <div id="turnPromptText" style="margin-bottom:14px;"></div>
+      <button id="turnPromptBtn">OK</button>
+    </div>
+  </div>
+
+  <script>
+    const LABELS = ["A", "A2", "E", "E2", "I", "I2", "J", "J2", "K", "K2", "Q", "Q2", "R", "R2", "W", "W2"];
+    const VERBS = [
+      "GO", "SEE", "WRITE", "EAT", "TAKE", "GIVE", "BREAK", "BEGIN",
+      "DRIVE", "CHOOSE", "DRINK", "FORGET", "KNOW", "RING", "SWIM", "WEAR",
+      "FLY", "GROW", "FALL", "DO", "COME", "BE", "HAVE", "MAKE",
+      "FIND", "TELL", "BUY", "THINK", "TEACH", "LEAVE", "FEEL", "KEEP",
+      "SLEEP", "MEET", "LOSE", "PAY", "SAY", "RUN", "SIT", "STAND",
+      "UNDERSTAND", "BRING", "BUILD", "CATCH", "SEND", "SPEND", "WIN", "SELL"
+    ];
+    const OUTCOMES = [
+      ...Array(2).fill("red"),
+      ...Array(2).fill("orange"),
+      ...Array(2).fill("yellow"),
+      ...Array(4).fill("green"),
+      ...Array(2).fill("blue"),
+      ...Array(2).fill("grey"),
+      ...Array(2).fill("purple")
+    ];
+
+    let grid = [];
+    let scores = [10, 10];
+    let wins = [0, 0];
+    let turn = 0;
+    let selectedIndex = null;
+    let lastPicked = null;
+    let gameOver = false;
+    let pendingSteve = false;
+
+    const gridEl = document.getElementById("grid");
+    const overlayEl = document.getElementById("overlay");
+    const verbEl = document.getElementById("verb");
+    const resultEl = document.getElementById("result");
+    const scoresEl = document.getElementById("scores");
+    const winsEl = document.getElementById("wins");
+
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function randomVerb() {
+      return VERBS[Math.floor(Math.random() * VERBS.length)];
+    }
+
+    function getSquareText(type) {
+      if (type === "red") return "ALL";
+      if (type === "orange") return "-3";
+      if (type === "yellow") return "-1";
+      if (type === "green") return "+3";
+      if (type === "blue") return "GIVE 5";
+      if (type === "grey") return "STEAL 3";
+      if (type === "purple") return "±10";
+      return "";
+    }
+
+    function newGame() {
+      grid = shuffle(OUTCOMES).map((type, i) => ({
+        id: LABELS[i],
+        type: type,
+        revealed: false
+      }));
+      scores = [10, 10];
+      turn = 0;
+      selectedIndex = null;
+      lastPicked = null;
+      gameOver = false;
+      overlayEl.classList.remove("show");
+      document.getElementById("turnPrompt").classList.remove("show");
+      resultEl.innerText = "";
+      render();
+    }
+
+    function render() {
+      scoresEl.innerText = `Class: ${scores[0]} | Le Poisson 🐟: ${scores[1]}`;
+      winsEl.innerText = `Wins → Class: ${wins[0]} | Le Poisson: ${wins[1]}`;
+
+      gridEl.innerHTML = "";
+      grid.forEach((cell, i) => {
+        const b = document.createElement("button");
+        b.className = "square";
+        if (cell.id === lastPicked) b.classList.add("last-picked");
+
+        if (cell.revealed) {
+          b.classList.add(cell.type);
+          b.textContent = getSquareText(cell.type);
+          b.disabled = true;
+        } else {
+          b.textContent = cell.id;
+          b.disabled = turn !== 0 || gameOver;
+          if (turn === 0 && !gameOver) {
+            b.addEventListener("click", () => pickSquare(i));
+          }
+        }
+        gridEl.appendChild(b);
+      });
+    }
+
+    function pickSquare(i) {
+      if (turn !== 0 || gameOver) return;
+      if (grid[i].revealed) return;
+      selectedIndex = i;
+      verbEl.innerText = randomVerb();
+      overlayEl.classList.add("show");
+    }
+
+    function markCorrect() {
+      overlayEl.classList.remove("show");
+      if (selectedIndex === null) return;
+      applyOutcome(selectedIndex, 0);
+    }
+
+    function markIncorrect() {
+      overlayEl.classList.remove("show");
+      if (selectedIndex !== null) {
+        lastPicked = grid[selectedIndex].id;
+      }
+      selectedIndex = null;
+      resultEl.innerText = "Class got 0 points.";
+      turn = 1;
+      render();
+      pendingSteve = true;
+      showTurnPrompt("Class got 0 points. Now Le Poisson 🐟 will play.");
+    }
+
+    function aiTurn() {
+      if (gameOver) return;
+      const hidden = grid
+        .map((cell, i) => (cell.revealed ? null : i))
+        .filter((i) => i !== null);
+      if (hidden.length === 0) {
+        finishGame("Le Poisson 🐟 got 0 points");
+        return;
+      }
+      const i = hidden[Math.floor(Math.random() * hidden.length)];
+      applyOutcome(i, 1);
+    }
+
+    function applyOutcome(i, player) {
+      const cell = grid[i];
+      const other = 1 - player;
+      let message = "";
+
+      cell.revealed = true;
+      lastPicked = cell.id;
+
+      if (cell.type === "red") {
+        scores[player] = 0;
+        message = `${player === 0 ? "Class" : "Le Poisson 🐟"} lost all points`;
+      } else if (cell.type === "orange") {
+        scores[player] -= 3;
+        message = `${player === 0 ? "Class" : "Le Poisson 🐟"} lost 3 points`;
+      } else if (cell.type === "yellow") {
+        scores[player] -= 1;
+        message = `${player === 0 ? "Class" : "Le Poisson 🐟"} lost 1 point`;
+      } else if (cell.type === "green") {
+        scores[player] += 3;
+        message = `${player === 0 ? "Class" : "Le Poisson 🐟"} won 3 points`;
+      } else if (cell.type === "blue") {
+        scores[other] += 5;
+        message = `${player === 0 ? "Class" : "Le Poisson 🐟"} gave 5 points to ${other === 0 ? "Class" : "Le Poisson 🐟"}`;
+      } else if (cell.type === "grey") {
+        scores[other] -= 3;
+        scores[player] += 3;
+        message = `${player === 0 ? "Class" : "Le Poisson 🐟"} stole 3 points`;
+      } else if (cell.type === "purple") {
+        if (player === 0) {
+          const gamble = window.confirm("Purple square: OK = gamble for +10 or -10. Cancel = 0 points");
+          if (gamble) {
+            const val = Math.random() < 0.5 ? 10 : -10;
+            scores[player] += val;
+            message = `Class ${val > 0 ? "won" : "lost"} 10 points`;
+          } else {
+            message = "Class got 0 points";
+          }
+        } else {
+          const val = Math.random() < 0.5 ? 10 : -10;
+          scores[player] += val;
+          message = `Le Poisson 🐟 ${val > 0 ? "won" : "lost"} 10 points`;
+        }
+      }
+
+      selectedIndex = null;
+
+      if (grid.every((c) => c.revealed)) {
+        render();
+        finishGame(message);
+        return;
+      }
+
+      if (player === 0) {
+        resultEl.innerText = message + ".";
+        turn = 1;
+        render();
+        pendingSteve = true;
+        showTurnPrompt(message + ". Now Le Poisson 🐟 will play.");
+      } else {
+        resultEl.innerText = message;
+        turn = 0;
+        render();
+      }
+    }
+
+    function finishGame(lastMessage) {
+      gameOver = true;
+      let winnerText = "It is a draw";
+      if (scores[0] > scores[1]) {
+        wins[0] += 1;
+        winnerText = "Class wins";
+      } else if (scores[1] > scores[0]) {
+        wins[1] += 1;
+        winnerText = "Le Poisson 🐟 wins";
+      }
+      resultEl.innerText = `${lastMessage}. ${winnerText}.`;
+      render();
+    }
+
+    function showTurnPrompt(text) {
+      document.getElementById("turnPromptText").innerText = text;
+      document.getElementById("turnPrompt").classList.add("show");
+    }
+
+    function continueToSteve() {
+      document.getElementById("turnPrompt").classList.remove("show");
+      if (pendingSteve && !gameOver) {
+        pendingSteve = false;
+        setTimeout(aiTurn, 200);
+      }
+    }
+
+    document.getElementById("newBtn").addEventListener("click", newGame);
+    document.getElementById("correctBtn").addEventListener("click", markCorrect);
+    document.getElementById("incorrectBtn").addEventListener("click", markIncorrect);
+    document.getElementById("turnPromptBtn").addEventListener("click", continueToSteve);
+
+    // basic self-checks
+    console.assert(LABELS.length === 16, "Grid should have 16 labels");
+    console.assert(OUTCOMES.length === 16, "Grid should have 16 outcomes");
+
+    newGame();
+  </script>
+</body>
+</html>
