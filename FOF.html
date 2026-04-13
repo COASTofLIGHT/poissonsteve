@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Fact, Opinion or False</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f5f7fa;
+    text-align: center;
+    padding: 40px;
+  }
+
+  h1 {
+    font-size: 40px;
+    margin-bottom: 20px;
+  }
+
+  button {
+    padding: 12px 20px;
+    margin: 10px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+  }
+
+  .main-btn {
+    background: #111;
+    color: white;
+  }
+
+  .secondary-btn {
+    background: white;
+    border: 1px solid #ccc;
+  }
+
+  .box {
+    margin: 30px auto;
+    padding: 40px;
+    max-width: 700px;
+    background: white;
+    border-radius: 20px;
+    font-size: 24px;
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .answer {
+    margin-top: 20px;
+    font-size: 20px;
+    min-height: 30px;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>FACT, OPINION or FALSE</h1>
+
+<button class="main-btn" onclick="newSentence()">New sentence</button>
+<button class="secondary-btn" onclick="toggleAnswer()">Reveal answer</button>
+
+<div class="box" id="sentence">Click "New sentence"</div>
+<div class="answer" id="answer"></div>
+
+<script>
+const items = [
+  { s:"Dogs are better pets than cats.", t:"OPINION" },
+  { s:"Penguins can fly.", t:"FALSE" },
+  { s:"Your heart is about the same size as your fist.", t:"FACT" },
+  { s:"Zoos are good for animals.", t:"OPINION" },
+  { s:"A shrimp's heart is in its head.", t:"FACT" },
+  { s:"The world's deadliest creature is a shark.", t:"FALSE" },
+  { s:"Snakes are scary animals.", t:"OPINION" },
+  { s:"Flamingos are born pink.", t:"FALSE" },
+  { s:"Baby kangaroos are 2.5 cm long when born.", t:"FACT" },
+  { s:"Dolphins are the most intelligent animals.", t:"OPINION" },
+  { s:"There is no sound in space.", t:"FACT" },
+  { s:"Monkeys cannot see colors.", t:"FALSE" },
+  { s:"Cats don’t meow at each other.", t:"FACT" },
+  { s:"Wild animals should never be kept as pets.", t:"OPINION" },
+  { s:"An octopus has red blood.", t:"FALSE" },
+  { s:"Elephants can paint.", t:"FACT" },
+  { s:"Big dogs are better than small dogs.", t:"OPINION" },
+  { s:"The Sun is a planet.", t:"FALSE" },
+  { s:"Rabbit teeth never stop growing.", t:"FACT" },
+  { s:"It is wrong to keep animals in cages.", t:"OPINION" },
+  { s:"A hippo has white milk.", t:"FALSE" },
+  { s:"Some watermelons are yellow inside.", t:"FACT" },
+  { s:"Insects are the most interesting animals.", t:"OPINION" },
+  { s:"Frogs can freeze without dying.", t:"FACT" },
+  { s:"Dolphins sleep with two eyes open.", t:"FALSE" },
+  { s:"Having a pet makes people happier.", t:"OPINION" },
+  { s:"The blue whale is the biggest animal.", t:"FACT" },
+  { s:"An ostrich can kill a lion.", t:"FACT" },
+  { s:"People should not eat animals.", t:"OPINION" },
+  { s:"Your nose gets warmer when you lie.", t:"FACT" },
+  { s:"A fish can walk on land.", t:"FACT" },
+  { s:"Fast food is healthier than home food.", t:"FALSE" },
+  { s:"Cats are more independent than dogs.", t:"OPINION" },
+  { s:"Your ears grow your whole life.", t:"FACT" },
+  { s:"Spiders have eight eyes.", t:"FACT" }
+];
+
+let current = null;
+let show = false;
+let remaining = [];
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function resetDeck() {
+  remaining = [...items];
+  shuffle(remaining);
+}
+
+function newSentence() {
+  if (remaining.length === 0) {
+    current = null;
+    document.getElementById("sentence").innerText =
+      "Write a Fact False and Opinion sentence about your weekend.";
+    document.getElementById("answer").innerText = "";
+    show = false;
+    return;
+  }
+
+  current = remaining.pop();
+  document.getElementById("sentence").innerText = current.s;
+  document.getElementById("answer").innerText = "";
+  show = false;
+}
+
+function toggleAnswer() {
+  if (!current) return;
+
+  if (!show) {
+    let text = current.t;
+
+    if (current.t === "OPINION") {
+      text += " → Do you agree? Why?";
+    }
+
+    document.getElementById("answer").innerText = text;
+    show = true;
+  } else {
+    document.getElementById("answer").innerText = "";
+    show = false;
+  }
+}
+
+resetDeck();
+</script>
+
+</body>
+</html>
