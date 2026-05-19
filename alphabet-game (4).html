@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alphabet Colour Battle</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@800;900&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --grey: #b0b8c1;
+    --grey-dark: #8a9099;
+    --red: #e63946;
+    --red-dark: #c1121f;
+    --green: #2dc653;
+    --green-dark: #1a9e3f;
+    --bg: #1a1a2e;
+    --panel: #16213e;
+    --accent: #f4a261;
+    --text-light: #edf2f4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Nunito', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    gap: 8px;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(231,57,70,0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(45,198,83,0.12) 0%, transparent 50%);
+  }
+
+  h1 {
+    font-family: 'Fredoka One', cursive;
+    color: var(--accent);
+    font-size: clamp(1.1rem, 3vw, 1.8rem);
+    letter-spacing: 2px;
+    text-shadow: 0 2px 12px rgba(244,162,97,0.4);
+    text-align: center;
+  }
+
+  .subtitle {
+    color: #8899aa;
+    font-size: clamp(0.62rem, 1.4vw, 0.78rem);
+    text-align: center;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+
+  /* ── Scoreboard ── */
+  .scoreboard {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .score-box {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 4px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 68px;
+    border: 2px solid transparent;
+  }
+  .score-box.red-box   { border-color: var(--red); }
+  .score-box.green-box { border-color: var(--green); }
+  .score-box.grey-box  { border-color: var(--grey); }
+
+  .score-label {
+    font-size: clamp(0.55rem, 1.1vw, 0.65rem);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 900;
+  }
+  .score-box.red-box .score-label   { color: var(--red); }
+  .score-box.green-box .score-label { color: var(--green); }
+  .score-box.grey-box .score-label  { color: var(--grey); }
+
+  .score-num {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.1rem, 2.8vw, 1.6rem);
+    color: var(--text-light);
+    line-height: 1.1;
+  }
+
+  /* ── Points scores (red / green only) ── */
+  .points-board {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .pts-box {
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 3px 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid transparent;
+  }
+  .pts-box.red-pts   { border-color: var(--red); }
+  .pts-box.green-pts { border-color: var(--green); }
+
+  .pts-label {
+    font-size: clamp(0.55rem, 1.1vw, 0.65rem);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 900;
+  }
+  .pts-box.red-pts   .pts-label { color: var(--red); }
+  .pts-box.green-pts .pts-label { color: var(--green); }
+
+  .pts-num {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.1rem, 2.8vw, 1.5rem);
+    color: var(--text-light);
+  }
+
+  /* ── Toast popup ── */
+  #toast {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-80px);
+    background: var(--panel);
+    border-radius: 14px;
+    padding: 9px 22px;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+    letter-spacing: 1px;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+    z-index: 200;
+    pointer-events: none;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+    opacity: 0;
+    white-space: nowrap;
+  }
+  #toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  /* ── Turn indicator ── */
+  .turn-indicator {
+    font-weight: 900;
+    font-size: clamp(0.68rem, 1.6vw, 0.88rem);
+    letter-spacing: 1px;
+    text-align: center;
+    transition: color 0.3s;
+    min-height: 1.1em;
+  }
+
+  /* ── Mode bar ── */
+  .game-mode-bar {
+    display: flex;
+    background: var(--panel);
+    border-radius: 10px;
+    padding: 3px;
+    border: 2px solid #334;
+  }
+  .mode-tab {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(0.65rem, 1.4vw, 0.78rem);
+    padding: 4px 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: #8899aa;
+    letter-spacing: 0.5px;
+    transition: background 0.2s, color 0.2s;
+  }
+  .mode-tab.active { background: var(--accent); color: #1a1a2e; }
+
+  /* ── Grid ── */
+  .alphabet-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: clamp(5px, 1.1vmin, 10px);
+    width: min(min(90vw, 90vh - 300px), 420px);
+  }
+
+  .letter-tile {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.1rem, 3.8vw, 2rem);
+    cursor: pointer;
+    user-select: none;
+    background: var(--grey);
+    color: #2d3436;
+    border: 3px solid var(--grey-dark);
+    box-shadow: 0 4px 0 var(--grey-dark), 0 6px 12px rgba(0,0,0,0.3);
+    transition: transform 0.08s, box-shadow 0.08s, background 0.18s, border-color 0.18s;
+    position: relative;
+    overflow: hidden;
+  }
+  .letter-tile::after {
+    content: '';
+    position: absolute;
+    top: 5px; left: 7px; right: 7px;
+    height: 28%;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.25);
+    pointer-events: none;
+  }
+  .letter-tile:hover  { transform: translateY(-3px) scale(1.06); box-shadow: 0 7px 0 var(--grey-dark), 0 10px 20px rgba(0,0,0,0.35); }
+  .letter-tile:active { transform: translateY(2px)  scale(0.97); box-shadow: 0 2px 0 var(--grey-dark), 0 3px 8px rgba(0,0,0,0.25); }
+
+  .letter-tile.red {
+    background: var(--red); border-color: var(--red-dark); color: #fff;
+    box-shadow: 0 4px 0 var(--red-dark), 0 6px 16px rgba(230,57,70,0.4);
+    animation: popIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .letter-tile.red:hover  { box-shadow: 0 7px 0 var(--red-dark), 0 10px 20px rgba(230,57,70,0.5); }
+  .letter-tile.red:active { box-shadow: 0 2px 0 var(--red-dark), 0 3px 8px rgba(230,57,70,0.3); }
+
+  .letter-tile.green {
+    background: var(--green); border-color: var(--green-dark); color: #fff;
+    box-shadow: 0 4px 0 var(--green-dark), 0 6px 16px rgba(45,198,83,0.4);
+    animation: popIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .letter-tile.green:hover  { box-shadow: 0 7px 0 var(--green-dark), 0 10px 20px rgba(45,198,83,0.5); }
+  .letter-tile.green:active { box-shadow: 0 2px 0 var(--green-dark), 0 3px 8px rgba(45,198,83,0.3); }
+
+  /* Glow pulse when tile is part of a scoring line */
+  .letter-tile.line-flash {
+    animation: lineFlash 0.5s ease;
+  }
+  @keyframes lineFlash {
+    0%   { filter: brightness(1); }
+    40%  { filter: brightness(1.8) drop-shadow(0 0 8px #fff); }
+    100% { filter: brightness(1); }
+  }
+
+  .letter-tile.grey-reset { animation: shrinkBack 0.18s ease; }
+  @keyframes shrinkBack { 0% { transform: scale(1.05); } 100% { transform: scale(1); } }
+
+  @keyframes popIn {
+    0%   { transform: scale(0.75); }
+    60%  { transform: scale(1.12); }
+    100% { transform: scale(1); }
+  }
+
+  /* ── Controls ── */
+  .controls { display: flex; gap: 10px; justify-content: center; }
+
+  .btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(0.75rem, 1.7vw, 0.9rem);
+    letter-spacing: 1px;
+    border: none;
+    border-radius: 12px;
+    padding: 6px 20px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.3);
+    background: var(--accent);
+    color: #1a1a2e;
+  }
+  .btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0,0,0,0.3); }
+  .btn:active { transform: translateY(2px);  box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+
+  .mode-hint {
+    font-size: clamp(0.58rem, 1.2vw, 0.72rem);
+    color: #8899aa;
+    text-align: center;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Winner banner ── */
+  .winner-banner {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,20,0.9);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    animation: fadeIn 0.3s ease;
+  }
+  .winner-banner.show { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .winner-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 8vw, 4rem);
+    color: var(--accent);
+    text-shadow: 0 0 30px rgba(244,162,97,0.6);
+    text-align: center;
+    padding: 0 20px;
+  }
+  .winner-stats {
+    color: var(--text-light);
+    font-size: clamp(0.85rem, 2vw, 1rem);
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>🔤 Alphabet Colour Battle</h1>
+<p class="subtitle">Lines score points — 3 in a line = 1pt · 4 = 3pts · 5 = 5pts</p>
+
+<div class="game-mode-bar">
+  <button class="mode-tab active" id="tab-free"  onclick="setGameMode('free')">Free Play</button>
+  <button class="mode-tab"        id="tab-turns" onclick="setGameMode('turns')">2-Player Turns</button>
+</div>
+
+<!-- Tile counts -->
+<div class="scoreboard">
+  <div class="score-box red-box">
+    <span class="score-label">🔴 Tiles</span>
+    <span class="score-num" id="score-red">0</span>
+  </div>
+  <div class="score-box grey-box">
+    <span class="score-label">⬜ Left</span>
+    <span class="score-num" id="score-grey">25</span>
+  </div>
+  <div class="score-box green-box">
+    <span class="score-label">🟢 Tiles</span>
+    <span class="score-num" id="score-green">0</span>
+  </div>
+</div>
+
+<!-- Line points -->
+<div class="points-board">
+  <div class="pts-box red-pts">
+    <span class="pts-label">🔴 Points</span>
+    <span class="pts-num" id="pts-red">0</span>
+  </div>
+  <div class="pts-box green-pts">
+    <span class="pts-label">🟢 Points</span>
+    <span class="pts-num" id="pts-green">0</span>
+  </div>
+</div>
+
+<div class="turn-indicator" id="turn-indicator"></div>
+
+<div class="alphabet-grid" id="alphabet-grid"></div>
+
+<div class="controls">
+  <button class="btn" onclick="resetBoard()">↺ Reset</button>
+</div>
+
+<p class="mode-hint" id="mode-hint">Click to cycle: grey → red → green → grey</p>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Winner banner -->
+<div class="winner-banner" id="winner-banner">
+  <div class="winner-text" id="winner-text">🏆 Red Wins!</div>
+  <div class="winner-stats" id="winner-stats"></div>
+  <button class="btn" style="font-size:1rem;padding:10px 30px" onclick="resetBoard()">Play Again</button>
+</div>
+
+<script>
+  // 25 letters — X removed for 5×5
+  const letters = 'abcdefghijklmnopqrstuvwyz'.split('');
+  const COLS = 5, ROWS = 5;
+
+  let tileStates = {};   // letter → 'grey'|'red'|'green'
+  let points = { red: 0, green: 0 };
+  // Track scored lines to avoid re-awarding. Key = canonical line string.
+  let scoredLines = { red: new Set(), green: new Set() };
+
+  let gameMode = 'free';
+  let currentTurn = 'red';
+  let toastTimer = null;
+
+  const grid = document.getElementById('alphabet-grid');
+
+  // ── Grid index helpers ──────────────────────────────────────────
+  // letters array is laid out row-by-row in the 5×5 grid:
+  // idx 0-4  = row 0, idx 5-9 = row 1, etc.
+  function idx(r, c) { return r * COLS + c; }
+
+  // All lines to check: rows, cols, diagonals (length 3,4,5 windows)
+  function getAllLines() {
+    const lines = [];
+
+    // Rows
+    for (let r = 0; r < ROWS; r++) {
+      for (let len = 3; len <= COLS; len++) {
+        for (let c = 0; c <= COLS - len; c++) {
+          const line = [];
+          for (let k = 0; k < len; k++) line.push(idx(r, c + k));
+          lines.push(line);
+        }
+      }
+    }
+
+    // Columns
+    for (let c = 0; c < COLS; c++) {
+      for (let len = 3; len <= ROWS; len++) {
+        for (let r = 0; r <= ROWS - len; r++) {
+          const line = [];
+          for (let k = 0; k < len; k++) line.push(idx(r + k, c));
+          lines.push(line);
+        }
+      }
+    }
+
+    // Diagonals top-left → bottom-right
+    for (let len = 3; len <= Math.min(ROWS, COLS); len++) {
+      for (let r = 0; r <= ROWS - len; r++) {
+        for (let c = 0; c <= COLS - len; c++) {
+          const line = [];
+          for (let k = 0; k < len; k++) line.push(idx(r + k, c + k));
+          lines.push(line);
+        }
+      }
+    }
+
+    // Diagonals top-right → bottom-left
+    for (let len = 3; len <= Math.min(ROWS, COLS); len++) {
+      for (let r = 0; r <= ROWS - len; r++) {
+        for (let c = len - 1; c < COLS; c++) {
+          const line = [];
+          for (let k = 0; k < len; k++) line.push(idx(r + k, c - k));
+          lines.push(line);
+        }
+      }
+    }
+
+    return lines;
+  }
+
+  const ALL_LINES = getAllLines();
+
+  function lineKey(indices) { return indices.join(','); }
+  function pointsFor(len)   { return len === 3 ? 1 : len === 4 ? 3 : 5; }
+  function labelFor(len)    { return len === 3 ? '3 in a line! +1pt' : len === 4 ? '4 in a line! +3pts' : '5 in a line! +5pts'; }
+
+  // ── Build grid ──────────────────────────────────────────────────
+  function buildGrid() {
+    grid.innerHTML = '';
+    letters.forEach(letter => {
+      tileStates[letter] = 'grey';
+      const tile = document.createElement('div');
+      tile.className = 'letter-tile';
+      tile.textContent = letter;
+      tile.id = 'tile-' + letter;
+      tile.addEventListener('click', () => handleClick(letter));
+      grid.appendChild(tile);
+    });
+  }
+
+  // ── Click handler ───────────────────────────────────────────────
+  function handleClick(letter) {
+    if (gameMode === 'free') {
+      const s = tileStates[letter];
+      tileStates[letter] = s === 'grey' ? 'red' : s === 'red' ? 'green' : 'grey';
+    } else {
+      if (tileStates[letter] !== 'grey') { flashTile(letter); return; }
+      tileStates[letter] = currentTurn;
+      switchTurn();
+    }
+
+    renderTile(letter);
+    updateScores();
+    checkLines();
+    checkWinner();
+  }
+
+  // ── Line scoring ─────────────────────────────────────────────────
+  function checkLines() {
+    const toasts = [];
+
+    for (const color of ['red', 'green']) {
+      for (const line of ALL_LINES) {
+        const key = lineKey(line);
+        if (scoredLines[color].has(key)) continue;
+
+        const allMatch = line.every(i => tileStates[letters[i]] === color);
+        if (!allMatch) {
+          // If this line was previously scored but tiles changed, remove its score
+          // (handled by full recalculate below)
+          continue;
+        }
+
+        // New line scored!
+        scoredLines[color].add(key);
+        const pts = pointsFor(line.length);
+        points[color] += pts;
+        toasts.push({ color, label: labelFor(line.length), pts });
+
+        // Flash the tiles
+        line.forEach(i => flashLineFlash(letters[i]));
+      }
+
+      // Also check for previously-scored lines that are now broken (tile changed to grey or other colour)
+      for (const key of [...scoredLines[color]]) {
+        const indices = key.split(',').map(Number);
+        const stillComplete = indices.every(i => tileStates[letters[i]] === color);
+        if (!stillComplete) {
+          scoredLines[color].delete(key);
+          const pts = pointsFor(indices.length);
+          points[color] -= pts;
+        }
+      }
+    }
+
+    updatePoints();
+
+    // Show toasts sequentially
+    if (toasts.length > 0) {
+      showToasts(toasts);
+    }
+  }
+
+  function flashLineFlash(letter) {
+    const tile = document.getElementById('tile-' + letter);
+    tile.classList.remove('line-flash');
+    void tile.offsetWidth; // reflow to retrigger
+    tile.classList.add('line-flash');
+    setTimeout(() => tile.classList.remove('line-flash'), 500);
+  }
+
+  let toastQueue = [];
+  let toastShowing = false;
+
+  function showToasts(items) {
+    toastQueue.push(...items);
+    if (!toastShowing) processToastQueue();
+  }
+
+  function processToastQueue() {
+    if (toastQueue.length === 0) { toastShowing = false; return; }
+    toastShowing = true;
+    const { color, label } = toastQueue.shift();
+    const toast = document.getElementById('toast');
+    const emoji = color === 'red' ? '🔴' : '🟢';
+    toast.textContent = `${emoji} ${label}`;
+    toast.style.borderColor = color === 'red' ? 'var(--red)' : 'var(--green)';
+    toast.style.color = color === 'red' ? 'var(--red)' : 'var(--green)';
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(processToastQueue, 300);
+    }, 1600);
+  }
+
+  // ── Render ───────────────────────────────────────────────────────
+  function renderTile(letter) {
+    const tile = document.getElementById('tile-' + letter);
+    const state = tileStates[letter];
+    tile.className = 'letter-tile ' + (state === 'grey' ? 'grey-reset' : state);
+    if (state === 'grey') {
+      setTimeout(() => { if (tile.classList.contains('grey-reset')) tile.className = 'letter-tile'; }, 200);
+    }
+  }
+
+  function flashTile(letter) {
+    const tile = document.getElementById('tile-' + letter);
+    tile.style.transform = 'scale(0.88)';
+    setTimeout(() => tile.style.transform = '', 150);
+  }
+
+  // ── Score display ────────────────────────────────────────────────
+  function updateScores() {
+    const c = { red: 0, green: 0, grey: 0 };
+    letters.forEach(l => c[tileStates[l]]++);
+    document.getElementById('score-red').textContent   = c.red;
+    document.getElementById('score-green').textContent = c.green;
+    document.getElementById('score-grey').textContent  = c.grey;
+  }
+
+  function updatePoints() {
+    document.getElementById('pts-red').textContent   = Math.max(0, points.red);
+    document.getElementById('pts-green').textContent = Math.max(0, points.green);
+  }
+
+  // ── Turn management ──────────────────────────────────────────────
+  function switchTurn() {
+    currentTurn = currentTurn === 'red' ? 'green' : 'red';
+    updateTurnIndicator();
+  }
+
+  function updateTurnIndicator() {
+    const el = document.getElementById('turn-indicator');
+    if (gameMode === 'turns') {
+      el.textContent = (currentTurn === 'red' ? '🔴 Red' : '🟢 Green') + "'s Turn";
+      el.style.color = currentTurn === 'red' ? 'var(--red)' : 'var(--green)';
+    } else {
+      el.textContent = '';
+    }
+  }
+
+  // ── Win check ────────────────────────────────────────────────────
+  function checkWinner() {
+    if (!letters.every(l => tileStates[l] !== 'grey')) return;
+
+    const tiles = { red: 0, green: 0 };
+    letters.forEach(l => tiles[tileStates[l]]++);
+    const pr = Math.max(0, points.red), pg = Math.max(0, points.green);
+
+    let msg;
+    if (pr !== pg) {
+      msg = pr > pg ? '🏆 Red Wins!' : '🏆 Green Wins!';
+    } else if (tiles.red !== tiles.green) {
+      msg = tiles.red > tiles.green ? '🏆 Red Wins!' : '🏆 Green Wins!';
+    } else {
+      msg = "🤝 It's a Tie!";
+    }
+
+    document.getElementById('winner-text').textContent = msg;
+    document.getElementById('winner-stats').textContent =
+      `🔴 ${pr} pts  (${tiles.red} tiles)   🟢 ${pg} pts  (${tiles.green} tiles)`;
+    setTimeout(() => document.getElementById('winner-banner').classList.add('show'), 400);
+  }
+
+  // ── Mode switching ───────────────────────────────────────────────
+  function setGameMode(mode) {
+    gameMode = mode;
+    document.getElementById('tab-free').classList.toggle('active', mode === 'free');
+    document.getElementById('tab-turns').classList.toggle('active', mode === 'turns');
+    document.getElementById('mode-hint').textContent = mode === 'turns'
+      ? 'Take turns clicking grey letters to claim them'
+      : 'Click to cycle: grey → red → green → grey';
+    resetBoard();
+  }
+
+  // ── Reset ────────────────────────────────────────────────────────
+  function resetBoard() {
+    document.getElementById('winner-banner').classList.remove('show');
+    document.getElementById('toast').classList.remove('show');
+    clearTimeout(toastTimer);
+    toastQueue = [];
+    toastShowing = false;
+    currentTurn = 'red';
+    points = { red: 0, green: 0 };
+    scoredLines = { red: new Set(), green: new Set() };
+    letters.forEach(l => {
+      tileStates[l] = 'grey';
+      const tile = document.getElementById('tile-' + l);
+      if (tile) tile.className = 'letter-tile';
+    });
+    updateScores();
+    updatePoints();
+    updateTurnIndicator();
+  }
+
+  buildGrid();
+  updateScores();
+  updatePoints();
+</script>
+</body>
+</html>
