@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blockbusters</title>
+<link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Exo+2:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red:        #ff3d5a;
+    --red-dark:   #c0152e;
+    --red-glow:   rgba(255,61,90,0.6);
+    --green:      #00e5a0;
+    --green-dark: #009e6e;
+    --green-glow: rgba(0,229,160,0.6);
+    --grey:       #2a3244;
+    --grey-lite:  #3d4f6b;
+    --grey-border:#4a5f80;
+    --bg:         #0d1117;
+    --panel:      #161d2a;
+    --accent:     #f0c040;
+    --text:       #e8edf5;
+    --text-dim:   #6b7fa0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Exo 2', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 15% 15%, rgba(255,61,90,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 85% 85%, rgba(0,229,160,0.07) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.015) 39px, rgba(255,255,255,0.015) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.015) 39px, rgba(255,255,255,0.015) 40px);
+  }
+
+  /* ── Header ── */
+  .header { text-align: center; line-height: 1; }
+  h1 {
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(1.4rem, 4vw, 2.4rem);
+    letter-spacing: 4px;
+    background: linear-gradient(135deg, var(--red) 0%, var(--accent) 50%, var(--green) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(240,192,64,0.3));
+  }
+  .tagline {
+    font-size: clamp(0.55rem, 1.2vw, 0.7rem);
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  /* ── Direction labels ── */
+  .direction-labels {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+  }
+  .dir-label {
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(0.62rem, 1.4vw, 0.82rem);
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .dir-label.red-label   { color: var(--red); }
+  .dir-label.green-label { color: var(--green); }
+
+  /* ── Turn / verdict bar ── */
+  .turn-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 6px 20px;
+    border: 1px solid #2a3550;
+    min-width: 280px;
+    min-height: 38px;
+    transition: border-color 0.3s;
+  }
+  .turn-bar.awaiting { border-color: var(--accent); }
+
+  .turn-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .turn-dot.red   { background: var(--red);   box-shadow: 0 0 8px var(--red-glow); }
+  .turn-dot.green { background: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+  .turn-dot.gold  { background: var(--accent); box-shadow: 0 0 8px rgba(240,192,64,0.7); }
+
+  .turn-text {
+    font-weight: 900;
+    font-size: clamp(0.68rem, 1.5vw, 0.84rem);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: color 0.3s;
+  }
+  .turn-text.red    { color: var(--red); }
+  .turn-text.green  { color: var(--green); }
+  .turn-text.gold   { color: var(--accent); }
+
+  /* ── Verdict buttons (hidden until a tile is selected) ── */
+  .verdict-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    min-height: 38px;
+    align-items: center;
+  }
+
+  .verdict-btn {
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(0.72rem, 1.6vw, 0.9rem);
+    letter-spacing: 1px;
+    border: none;
+    border-radius: 10px;
+    padding: 7px 22px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s, opacity 0.2s;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.4);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px);
+  }
+  .verdict-btn.visible {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s, box-shadow 0.1s;
+  }
+  .verdict-btn:hover  { transform: translateY(-2px) !important; }
+  .verdict-btn:active { transform: translateY(2px)  !important; box-shadow: 0 2px 0 rgba(0,0,0,0.4); }
+
+  .btn-correct {
+    background: var(--green);
+    color: #0d1117;
+    box-shadow: 0 4px 0 var(--green-dark);
+  }
+  .btn-correct:hover { box-shadow: 0 6px 0 var(--green-dark), 0 0 16px var(--green-glow); }
+
+  .btn-wrong {
+    background: var(--red);
+    color: #fff;
+    box-shadow: 0 4px 0 var(--red-dark);
+  }
+  .btn-wrong:hover { box-shadow: 0 6px 0 var(--red-dark), 0 0 16px var(--red-glow); }
+
+  /* ── Board wrapper ── */
+  .board-wrapper {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    grid-template-rows: auto auto auto;
+    align-items: center;
+    justify-items: center;
+    gap: 5px;
+  }
+
+  .edge-arrow {
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(0.55rem, 1.2vw, 0.72rem);
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 3px 5px;
+    border-radius: 6px;
+  }
+  .edge-top    { color: var(--green); grid-column: 2; grid-row: 1; }
+  .edge-bottom { color: var(--green); grid-column: 2; grid-row: 3; }
+  .edge-left   { color: var(--red); grid-column: 1; grid-row: 2; writing-mode: vertical-rl; transform: rotate(180deg); }
+  .edge-right  { color: var(--red); grid-column: 3; grid-row: 2; writing-mode: vertical-rl; }
+
+  /* ── Grid ── */
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: clamp(5px, 1vmin, 9px);
+    width: min(min(88vw, 88vh - 300px), 390px);
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .tile {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(1rem, 3.5vw, 1.9rem);
+    cursor: pointer;
+    user-select: none;
+    background: var(--grey);
+    color: var(--text-dim);
+    border: 2px solid var(--grey-border);
+    box-shadow: 0 3px 0 #0d1117, inset 0 1px 0 rgba(255,255,255,0.06);
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.08s, box-shadow 0.08s;
+    position: relative;
+    overflow: hidden;
+  }
+  .tile::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .tile:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 0 #0d1117, inset 0 1px 0 rgba(255,255,255,0.1);
+    background: var(--grey-lite);
+    color: var(--text);
+  }
+  .tile:active { transform: translateY(1px) scale(0.97); }
+
+  /* Selected — awaiting verdict */
+  .tile.selected-red {
+    background: color-mix(in srgb, var(--red) 45%, var(--grey));
+    border-color: var(--red);
+    color: #fff;
+    box-shadow: 0 3px 0 var(--red-dark), 0 0 0 3px rgba(255,61,90,0.35);
+    animation: selectedPulse 1s ease-in-out infinite alternate;
+  }
+  .tile.selected-green {
+    background: color-mix(in srgb, var(--green) 45%, var(--grey));
+    border-color: var(--green);
+    color: #fff;
+    box-shadow: 0 3px 0 var(--green-dark), 0 0 0 3px rgba(0,229,160,0.35);
+    animation: selectedPulse 1s ease-in-out infinite alternate;
+  }
+  @keyframes selectedPulse {
+    from { box-shadow: 0 3px 0 var(--red-dark, var(--green-dark)), 0 0 6px  rgba(255,255,255,0.1); }
+    to   { box-shadow: 0 3px 0 var(--red-dark, var(--green-dark)), 0 0 18px rgba(255,255,255,0.35); }
+  }
+
+  .tile.red {
+    background: var(--red);
+    border-color: var(--red-dark);
+    color: #fff;
+    box-shadow: 0 3px 0 var(--red-dark), 0 0 12px rgba(255,61,90,0.3);
+    animation: claimPop 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .tile.red:hover { box-shadow: 0 6px 0 var(--red-dark), 0 0 20px rgba(255,61,90,0.45); }
+
+  .tile.green {
+    background: var(--green);
+    border-color: var(--green-dark);
+    color: #0d1117;
+    box-shadow: 0 3px 0 var(--green-dark), 0 0 12px rgba(0,229,160,0.3);
+    animation: claimPop 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .tile.green:hover { box-shadow: 0 6px 0 var(--green-dark), 0 0 20px rgba(0,229,160,0.45); }
+
+  /* Wrong answer — red flash then back to grey */
+  .tile.wrong-flash {
+    animation: wrongFlash 0.5s ease forwards;
+  }
+  @keyframes wrongFlash {
+    0%   { background: #ff3d5a; border-color: #c0152e; color: #fff; transform: scale(1.1); }
+    40%  { transform: scale(0.92); }
+    100% { background: var(--grey); border-color: var(--grey-border); color: var(--text-dim); transform: scale(1); }
+  }
+
+  /* Winning path */
+  .tile.win-path {
+    animation: winPulse 0.6s ease forwards !important;
+    z-index: 2;
+  }
+  @keyframes winPulse {
+    0%   { filter: brightness(1);   transform: scale(1); }
+    30%  { filter: brightness(2.2) drop-shadow(0 0 12px #fff); transform: scale(1.15); }
+    60%  { filter: brightness(1.5); transform: scale(1.05); }
+    100% { filter: brightness(1.8) drop-shadow(0 0 8px currentColor); transform: scale(1.08); }
+  }
+
+  .tile.shake { animation: shake 0.25s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25%     { transform: translateX(-5px); }
+    75%     { transform: translateX(5px); }
+  }
+
+  @keyframes claimPop {
+    0%   { transform: scale(0.7); }
+    65%  { transform: scale(1.13); }
+    100% { transform: scale(1); }
+  }
+
+  /* ── Controls ── */
+  .controls { display: flex; gap: 10px; }
+
+  .btn-reset {
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(0.65rem, 1.4vw, 0.82rem);
+    letter-spacing: 2px;
+    border: 2px solid #2a3550;
+    border-radius: 10px;
+    padding: 5px 18px;
+    cursor: pointer;
+    background: var(--panel);
+    color: var(--text-dim);
+    transition: border-color 0.2s, color 0.2s, transform 0.1s;
+    box-shadow: 0 3px 0 #0d1117;
+  }
+  .btn-reset:hover  { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+  .btn-reset:active { transform: translateY(1px); }
+
+  .mode-hint {
+    font-size: clamp(0.52rem, 1.1vw, 0.65rem);
+    color: var(--text-dim);
+    text-align: center;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Winner overlay ── */
+  .winner-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(8,12,20,0.92);
+    z-index: 100;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    animation: fadeIn 0.4s ease;
+  }
+  .winner-overlay.show { display: flex; }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+  .winner-title {
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(2.2rem, 9vw, 5rem);
+    letter-spacing: 4px;
+    text-align: center;
+    padding: 0 20px;
+    animation: titleBurst 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes titleBurst {
+    0%   { transform: scale(0.4); opacity:0; }
+    100% { transform: scale(1);   opacity:1; }
+  }
+  .winner-title.red   { color: var(--red);   text-shadow: 0 0 40px var(--red-glow),   0 0 80px var(--red-glow); }
+  .winner-title.green { color: var(--green); text-shadow: 0 0 40px var(--green-glow), 0 0 80px var(--green-glow); }
+
+  .winner-sub {
+    font-weight: 900;
+    font-size: clamp(0.8rem, 2vw, 1rem);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .btn-play-again {
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(0.85rem, 2vw, 1.05rem);
+    letter-spacing: 2px;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 32px;
+    cursor: pointer;
+    background: var(--accent);
+    color: #0d1117;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.4), 0 0 20px rgba(240,192,64,0.3);
+    transition: transform 0.1s, box-shadow 0.1s;
+    margin-top: 4px;
+  }
+  .btn-play-again:hover  { transform: translateY(-2px); box-shadow: 0 6px 0 rgba(0,0,0,0.4), 0 0 30px rgba(240,192,64,0.4); }
+  .btn-play-again:active { transform: translateY(2px);  box-shadow: 0 2px 0 rgba(0,0,0,0.4); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>BLOCKBUSTERS</h1>
+  <p class="tagline">Connect your edges to win</p>
+</div>
+
+<div class="direction-labels">
+  <span class="dir-label red-label">← RED: LEFT TO RIGHT →</span>
+  <span class="dir-label green-label">↑ GREEN: TOP TO BOTTOM ↓</span>
+</div>
+
+<!-- Turn indicator -->
+<div class="turn-bar" id="turn-bar">
+  <div class="turn-dot red" id="turn-dot"></div>
+  <span class="turn-text red" id="turn-text">RED'S TURN — PICK A LETTER</span>
+</div>
+
+<!-- Verdict buttons — hidden until a tile is selected -->
+<div class="verdict-row">
+  <button class="verdict-btn btn-correct" id="btn-correct" onclick="verdict(true)">✅ CORRECT</button>
+  <button class="verdict-btn btn-wrong"   id="btn-wrong"   onclick="verdict(false)">❌ WRONG</button>
+</div>
+
+<div class="board-wrapper">
+  <div class="edge-arrow edge-top">▼ GREEN ▼</div>
+  <div class="edge-arrow edge-left">◀ RED ◀</div>
+  <div class="game-grid" id="game-grid"></div>
+  <div class="edge-arrow edge-right">▶ RED ▶</div>
+  <div class="edge-arrow edge-bottom">▲ GREEN ▲</div>
+</div>
+
+<div class="controls">
+  <button class="btn-reset" onclick="resetBoard()">↺ NEW GAME</button>
+</div>
+
+<p class="mode-hint">Select a letter · ✅ correct claims it · ❌ wrong passes the turn</p>
+
+<!-- Winner overlay -->
+<div class="winner-overlay" id="winner-overlay">
+  <div class="winner-title" id="winner-title">RED WINS!</div>
+  <div class="winner-sub"   id="winner-sub">Connected left to right!</div>
+  <button class="btn-play-again" onclick="resetBoard()">PLAY AGAIN</button>
+</div>
+
+<script>
+  const LETTERS = 'abcdefghijklmnopqrstuvwyz'.split('');
+  const COLS = 5, ROWS = 5;
+
+  let tileStates    = {};
+  let currentTurn   = 'red';
+  let selectedTile  = null;   // letter currently selected, awaiting verdict
+  let gameOver      = false;
+
+  const gameGrid = document.getElementById('game-grid');
+
+  // ── Build grid ──────────────────────────────────────────────────
+  function buildGrid() {
+    gameGrid.innerHTML = '';
+    LETTERS.forEach(letter => {
+      tileStates[letter] = 'grey';
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.textContent = letter;
+      tile.id = 'tile-' + letter;
+      tile.addEventListener('click', () => handleClick(letter));
+      gameGrid.appendChild(tile);
+    });
+  }
+
+  // ── Click: select a tile ─────────────────────────────────────────
+  function handleClick(letter) {
+    if (gameOver) return;
+
+    // Already claimed — shake it
+    if (tileStates[letter] !== 'grey') {
+      const tile = document.getElementById('tile-' + letter);
+      tile.classList.remove('shake');
+      void tile.offsetWidth;
+      tile.classList.add('shake');
+      setTimeout(() => tile.classList.remove('shake'), 250);
+      return;
+    }
+
+    // If clicking the already-selected tile — deselect (cancel)
+    if (selectedTile === letter) {
+      deselectTile();
+      return;
+    }
+
+    // Deselect any previously selected tile first
+    if (selectedTile !== null) deselectTile();
+
+    // Select this tile
+    selectedTile = letter;
+    const tile = document.getElementById('tile-' + letter);
+    tile.className = 'tile selected-' + currentTurn;
+
+    // Show verdict buttons
+    showVerdictButtons(true);
+
+    // Update turn bar
+    const name = currentTurn === 'red' ? 'RED' : 'GREEN';
+    const letter_upper = letter.toUpperCase();
+    setTurnBar('gold', `${name} CHOSE "${letter_upper}" — CORRECT OR WRONG?`);
+  }
+
+  // ── Verdict: host decides correct or wrong ───────────────────────
+  function verdict(correct) {
+    if (selectedTile === null) return;
+
+    const letter = selectedTile;
+    const tile   = document.getElementById('tile-' + letter);
+
+    showVerdictButtons(false);
+
+    if (correct) {
+      // Claim the tile
+      tileStates[letter] = currentTurn;
+      tile.className = 'tile ' + currentTurn;
+      selectedTile = null;
+
+      const winner = checkWinner();
+      if (winner) {
+        triggerWin(winner);
+      } else {
+        switchTurn();
+      }
+    } else {
+      // Wrong — flash the tile then reset to grey, pass turn
+      selectedTile = null;
+      tile.classList.add('wrong-flash');
+      setTimeout(() => {
+        tile.className = 'tile';   // back to plain grey
+      }, 500);
+      switchTurn();
+    }
+  }
+
+  // ── Deselect current tile (cancel selection) ─────────────────────
+  function deselectTile() {
+    if (selectedTile === null) return;
+    const tile = document.getElementById('tile-' + selectedTile);
+    tile.className = 'tile';
+    selectedTile = null;
+    showVerdictButtons(false);
+    updateTurnIndicator();
+  }
+
+  // ── Show / hide verdict buttons ──────────────────────────────────
+  function showVerdictButtons(show) {
+    document.getElementById('btn-correct').classList.toggle('visible', show);
+    document.getElementById('btn-wrong').classList.toggle('visible', show);
+    document.getElementById('turn-bar').classList.toggle('awaiting', show);
+  }
+
+  // ── Turn management ──────────────────────────────────────────────
+  function switchTurn() {
+    currentTurn = currentTurn === 'red' ? 'green' : 'red';
+    updateTurnIndicator();
+  }
+
+  function updateTurnIndicator() {
+    const name = currentTurn === 'red' ? 'RED' : 'GREEN';
+    setTurnBar(currentTurn, `${name}'S TURN — PICK A LETTER`);
+  }
+
+  function setTurnBar(colorClass, message) {
+    document.getElementById('turn-dot').className  = 'turn-dot ' + colorClass;
+    document.getElementById('turn-text').className = 'turn-text ' + colorClass;
+    document.getElementById('turn-text').textContent = message;
+  }
+
+  // ── Adjacency (8-directional) ────────────────────────────────────
+  function getNeighbours(idx) {
+    const r = Math.floor(idx / COLS), c = idx % COLS;
+    const nb = [];
+    for (let dr = -1; dr <= 1; dr++)
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const nr = r+dr, nc = c+dc;
+        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) nb.push(nr*COLS+nc);
+      }
+    return nb;
+  }
+
+  // ── BFS path finder ──────────────────────────────────────────────
+  function findPath(color) {
+    const isStart = color === 'red'
+      ? i => i % COLS === 0
+      : i => Math.floor(i / COLS) === 0;
+    const isEnd = color === 'red'
+      ? i => i % COLS === COLS - 1
+      : i => Math.floor(i / COLS) === ROWS - 1;
+
+    const queue = [], visited = new Set(), parent = {};
+    for (let i = 0; i < LETTERS.length; i++) {
+      if (tileStates[LETTERS[i]] === color && isStart(i)) {
+        queue.push(i); visited.add(i); parent[i] = null;
+      }
+    }
+    while (queue.length) {
+      const cur = queue.shift();
+      if (isEnd(cur)) {
+        const path = [];
+        let n = cur;
+        while (n !== null && n !== undefined) { path.push(n); n = parent[n]; }
+        return path;
+      }
+      for (const nb of getNeighbours(cur)) {
+        if (!visited.has(nb) && tileStates[LETTERS[nb]] === color) {
+          visited.add(nb); parent[nb] = cur; queue.push(nb);
+        }
+      }
+    }
+    return null;
+  }
+
+  // ── Win check ────────────────────────────────────────────────────
+  function checkWinner() {
+    const rp = findPath('red');   if (rp) return { color: 'red',   path: rp };
+    const gp = findPath('green'); if (gp) return { color: 'green', path: gp };
+    return null;
+  }
+
+  // ── Win sequence ─────────────────────────────────────────────────
+  function triggerWin(winner) {
+    gameOver = true;
+    winner.path.forEach((idx, i) => {
+      setTimeout(() => {
+        document.getElementById('tile-' + LETTERS[idx]).classList.add('win-path');
+      }, i * 80);
+    });
+    setTimeout(() => {
+      const title = document.getElementById('winner-title');
+      const sub   = document.getElementById('winner-sub');
+      title.textContent = winner.color === 'red' ? 'RED WINS!' : 'GREEN WINS!';
+      title.className   = 'winner-title ' + winner.color;
+      sub.textContent   = winner.color === 'red'
+        ? '🔴 Connected left to right!'
+        : '🟢 Connected top to bottom!';
+      document.getElementById('winner-overlay').classList.add('show');
+    }, winner.path.length * 80 + 400);
+  }
+
+  // ── Reset ────────────────────────────────────────────────────────
+  function resetBoard() {
+    gameOver   = false;
+    currentTurn = 'red';
+    selectedTile = null;
+    document.getElementById('winner-overlay').classList.remove('show');
+    showVerdictButtons(false);
+    LETTERS.forEach(l => {
+      tileStates[l] = 'grey';
+      const t = document.getElementById('tile-' + l);
+      if (t) t.className = 'tile';
+    });
+    updateTurnIndicator();
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────
+  buildGrid();
+  updateTurnIndicator();
+</script>
+</body>
+</html>
